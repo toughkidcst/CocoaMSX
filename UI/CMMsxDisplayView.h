@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -25,9 +25,18 @@
 @class CMCocoaBuffer;
 @class CMFrameCounter;
 @class CMEmulatorController;
+@class CMMsxDisplayView;
+
+@protocol CMMsxDisplayViewDelegate <NSObject>
+@optional
+- (void) msxDisplay:(CMMsxDisplayView *) display
+ borderColorChanged:(NSColor *) borderColor;
+@end
 
 @interface CMMsxDisplayView : NSOpenGLView
 {
+    @private
+    UInt32 borderColor;
     CGFloat framesPerSecond;
     GLuint screenTexId;
     
@@ -40,7 +49,10 @@
     BOOL cursorVisible;
 }
 
-- (CGFloat)framesPerSecond;
-- (NSImage *)captureScreen:(BOOL)large;
+@property (nonatomic, assign) IBOutlet id<CMMsxDisplayViewDelegate> delegate;
+
+- (CGFloat) framesPerSecond;
+- (NSImage *) captureScreen:(BOOL) large;
+- (NSColor *) borderColor;
 
 @end

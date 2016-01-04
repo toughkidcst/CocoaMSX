@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -69,6 +69,9 @@
 - (void)awakeFromNib
 {
     [self.window setAcceptsMouseMovedEvents:YES];
+    if ([self respondsToSelector:@selector(setWantsBestResolutionOpenGLSurface:)]) {
+        [self setWantsBestResolutionOpenGLSurface:YES];
+    }
     
     [[NSUserDefaults standardUserDefaults] addObserver:self
                                             forKeyPath:@"videoScanlineAmount"
@@ -129,20 +132,25 @@
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     
-    for (int i = 0; i < 2; i++)
-    {
-        [screens[i] release];
-        screens[i] = [[CMCocoaBuffer alloc] initWithWidth:BUFFER_WIDTH
-                                                   height:HEIGHT
-                                                    depth:DEPTH
-                                                     zoom:ZOOM];
+    GLfloat scaleFactor = 1.0f;
+    if ([[self window] respondsToSelector:@selector(backingScaleFactor)]) {
+        scaleFactor = [[self window] backingScaleFactor];
     }
     
+    [screens[0] release];
+    screens[0] = [[CMCocoaBuffer alloc] initWithWidth:BUFFER_WIDTH
+                                               height:HEIGHT
+                                                 zoom:ZOOM
+                                         backingScale:scaleFactor];
+    [screens[1] release];
+    screens[1] = [[CMCocoaBuffer alloc] initWithWidth:BUFFER_WIDTH
+                                               height:HEIGHT
+                                                 zoom:ZOOM
+                                         backingScale:scaleFactor];
+    
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 screens[0]->textureWidth,
-                 screens[0]->textureHeight,
-                 0, GL_RGBA, GL_UNSIGNED_BYTE,
-                 screens[0]->pixels);
+                 screens[0]->textureSize.width, screens[0]->textureSize.height,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     
     glDisable(GL_TEXTURE_2D);
     
@@ -162,7 +170,13 @@
     [[self openGLContext] update];
     
     NSSize size = [self bounds].size;
-    
+    NSSize backingSize;
+    if ([self respondsToSelector:@selector(convertRectToBacking:)]) {
+        backingSize = [self convertRectToBacking:[self bounds]].size;
+    } else {
+        backingSize = size;
+    }
+
     if ([emulator isStarted])
     {
         if (size.width < ACTUAL_WIDTH * ZOOM)
@@ -192,10 +206,10 @@
     NSLog(@"MsxDisplayView: resized to %.00fx%.00f", size.width, size.height);
 #endif
     
-    glViewport(0, 0, size.width, size.height);
+    glViewport(0, 0, backingSize.width, backingSize.height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(0, size.width, size.height, 0, -1, 1);
+    glOrtho(0, backingSize.width, backingSize.height, 0, -1, 1);
     glMatrixMode(GL_MODELVIEW);
     
     glClear(GL_COLOR_BUFFER_BIT);
@@ -271,26 +285,31 @@
     
     Properties *properties = emulator.properties;
     Video *video = emulator.video;
-    FrameBuffer* frameBuffer = frameBufferFlipViewFrame(properties->emulation.syncMethod == P_EMU_SYNCTOVBLANKASYNC);
+    FrameBuffer *frameBuffer = frameBufferFlipViewFrame(properties->emulation.syncMethod == P_EMU_SYNCTOVBLANKASYNC);
     
     CMCocoaBuffer *currentScreen = screens[currentScreenIndex];
     
-    char* dpyData = currentScreen->pixels;
+    UInt8 *dpyData = currentScreen->pixels;
     int width = currentScreen->actualWidth;
     int height = currentScreen->actualHeight;
     
     if (frameBuffer == NULL)
         frameBuffer = frameBufferGetWhiteNoiseFrame();
     
-    int borderWidth = (BUFFER_WIDTH - frameBuffer->maxWidth) * currentScreen->zoom / 2;
-    const int linesPerBlock = 4;
-    GLfloat coordX = currentScreen->textureCoordX;
-    GLfloat coordY = currentScreen->textureCoordY;
-    int y;
+    int borderWidth = (BUFFER_WIDTH - frameBuffer->maxWidth) * ZOOM / 2;
     
-    videoRender(video, frameBuffer, currentScreen->depth, currentScreen->zoom,
+    videoRender(video, frameBuffer, DEPTH, ZOOM,
                 dpyData + borderWidth * currentScreen->bytesPerPixel, 0,
                 currentScreen->pitch, -1);
+    
+    UInt32 bgColor = *((UInt32 *)(dpyData + borderWidth * currentScreen->bytesPerPixel));
+    if (bgColor != borderColor) {
+        borderColor = bgColor;
+        if ([self->_delegate respondsToSelector:@selector(msxDisplay:borderColorChanged:)]) {
+            [self->_delegate msxDisplay:self
+                     borderColorChanged:[self borderColor]];
+        }
+    }
     
     if (borderWidth > 0)
     {
@@ -309,25 +328,30 @@
     glBindTexture(GL_TEXTURE_2D, screenTexId);
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
     
-    for (y = 0; y < height; y += linesPerBlock)
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, y, width, linesPerBlock,
-                        GL_RGBA, GL_UNSIGNED_BYTE,
-                        currentScreen->pixels + y * currentScreen->pitch);
+    void *texture = [currentScreen applyScale];
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, currentScreen->textureSize.width,
+                    currentScreen->textureSize.height,
+                    GL_RGBA, GL_UNSIGNED_BYTE, texture);
     
-    NSSize size = [self bounds].size;
+    NSSize backingSize;
+    if ([self respondsToSelector:@selector(convertRectToBacking:)]) {
+        backingSize = [self convertRectToBacking:[self bounds]].size;
+    } else {
+        backingSize = [self bounds].size;
+    }
     
-    CGFloat widthRatio = size.width / (CGFloat)ACTUAL_WIDTH;
+    CGFloat widthRatio = backingSize.width / (CGFloat)ACTUAL_WIDTH;
     CGFloat offset = ((BUFFER_WIDTH - ACTUAL_WIDTH) / 2.0) * widthRatio;
     
     glBegin(GL_QUADS);
     glTexCoord2f(0.0, 0.0);
     glVertex3f(-offset, 0.0, 0.0);
-    glTexCoord2f(coordX, 0.0);
-    glVertex3f(size.width + offset, 0.0, 0.0);
-    glTexCoord2f(coordX, coordY);
-    glVertex3f(size.width + offset, size.height, 0.0);
-    glTexCoord2f(0.0, coordY);
-    glVertex3f(-offset, size.height, 0.0);
+    glTexCoord2f(currentScreen->textureCoord.x, 0.0);
+    glVertex3f(backingSize.width + offset, 0.0, 0.0);
+    glTexCoord2f(currentScreen->textureCoord.x, currentScreen->textureCoord.y);
+    glVertex3f(backingSize.width + offset, backingSize.height, 0.0);
+    glTexCoord2f(0.0, currentScreen->textureCoord.y);
+    glVertex3f(-offset, backingSize.height, 0.0);
     glEnd();
     glDisable(GL_TEXTURE_2D);
     
@@ -341,6 +365,14 @@
 - (CGFloat)framesPerSecond
 {
     return framesPerSecond;
+}
+
+- (NSColor *) borderColor
+{
+    return [NSColor colorWithCalibratedRed:(borderColor & 0xff) / 255.0
+                                     green:((borderColor >> 8) & 0xff) / 255.0
+                                      blue:((borderColor >> 16) & 0xff) / 255.0
+                                     alpha:1.0];
 }
 
 #pragma mark - blueMSX implementations
@@ -440,8 +472,8 @@ void *archScreenCapture(ScreenCaptureType type, int *bitmapSize, int onlyBmp)
         NSImage *image = [theEmulator.screen captureScreen:NO];
         if (image && [image representations].count > 0)
         {
-            NSBitmapImageRep *rep = [[image representations] objectAtIndex:0];
-            NSData *pngData = [rep representationUsingType:NSPNGFileType properties:nil];
+            NSBitmapImageRep *rep = (NSBitmapImageRep *)[[image representations] firstObject];
+            NSData *pngData = [rep representationUsingType:NSPNGFileType properties:@{}];
             
             *bitmapSize = pngData.length;
             bytes = malloc(*bitmapSize);

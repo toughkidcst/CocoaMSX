@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -32,9 +32,6 @@
     NSInteger currentState;
     
     CMGamepadConfiguration *configuration;
-    NSMutableDictionary *allAxisValues;
-    
-    id _delegate;
     
     IBOutlet NSTextField *directionField;
     IBOutlet NSButton *saveButton;
@@ -42,17 +39,17 @@
 
 @property (nonatomic, assign) id delegate;
 
-- (void)restartConfiguration:(NSInteger)joypadId;
+- (void) restartConfiguration:(NSInteger) joypadId;
 
-- (IBAction)onCancelClicked:(id)sender;
-- (IBAction)onSaveClicked:(id)sender;
+- (IBAction) onCancelClicked:(id) sender;
+- (IBAction) onSaveClicked:(id) sender;
 
 @end
 
 @protocol CMGamepadConfigurationDelegate
 
 @required
-- (void)gamepadDidConfigure:(CMGamepad *)gamepad
-              configuration:(CMGamepadConfiguration *)configuration;
+- (void) gamepadDidConfigure:(CMGamepad *) gamepad
+               configuration:(CMGamepadConfiguration *) configuration;
 
 @end

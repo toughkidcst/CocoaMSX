@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -135,7 +135,7 @@ static NSArray *keysInOrderOfAppearance;
 
 @interface CMPreferenceController ()
 
-- (void)sliderValueChanged:(id)sender;
+- (void) sliderValueChanged:(NSSlider *) sender;
 
 - (NSInteger)virtualPositionOfSlider:(NSSlider *)slider
                           usingTable:(NSArray *)table;
@@ -909,7 +909,7 @@ static NSArray *keysInOrderOfAppearance;
     CMSetObjPref(@"selectedPreferencesTab", tabIdentifier);
 }
 
-- (void)sliderValueChanged:(id)sender
+- (void) sliderValueChanged:(NSSlider *) sender
 {
     double range = [sender maxValue] - [sender minValue];
     double tickInterval = range / ([sender numberOfTickMarks] - 1);

@@ -735,8 +735,6 @@ static int WaitForSync(int maxSpeed, int breakpointHit) {
         return WaitReverse();
     }
 
-    boardEnableSnapshots(1);
-
     emuMaxEmuSpeed = maxSpeed;
 
     syncPeriod = emulatorGetSyncPeriod();
@@ -792,7 +790,9 @@ static int WaitForSync(int maxSpeed, int breakpointHit) {
 #ifdef NO_TIMERS
                 while (timerCallback(NULL) == 0) emuExitFlag |= archPollEvent();
 #endif
-                archEventWait(emuSyncEvent, -1);
+                fprintf(stderr, "emuMaxSpeed:%d emuMaxEmuSpeed:%d emuExitFlag:%d overflowCount:%d\n",
+                        emuMaxSpeed,emuMaxEmuSpeed,emuExitFlag,overflowCount);
+//                archEventWait(emuSyncEvent, -1);
             }
             overflowCount = 0;
         } while (!emuExitFlag && emuState != EMU_RUNNING);

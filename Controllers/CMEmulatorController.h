@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -40,11 +40,10 @@ NSString * const CMKeyboardLayoutPrefKey;
 @class CMAboutController;
 @class CMMachineEditorController;
 
-@interface CMEmulatorController : NSWindowController<NSWindowDelegate, NSUserInterfaceValidations, CMSpecialCartSelectedDelegate, CMCassetteRepositionDelegate, NSOpenSavePanelDelegate>
+@interface CMEmulatorController : NSWindowController<NSWindowDelegate, NSUserInterfaceValidations, CMSpecialCartSelectedDelegate, CMCassetteRepositionDelegate, NSOpenSavePanelDelegate, CMMsxDisplayViewDelegate>
 {
     NSInteger lastLedState;
     NSString *_fpsDisplay;
-    NSString *_fileToLoadAtStartup;
     BOOL _isInitialized;
     NSString *_currentlyLoadedCaptureFilePath;
     NSString *_lastLoadedState;
@@ -80,13 +79,23 @@ NSString * const CMKeyboardLayoutPrefKey;
     NSMutableDictionary *romTypeIndices;
     NSMutableDictionary *romTypes;
     NSMutableArray *romTypeNames;
+    NSMutableArray *recentDocuments;
     
-    IBOutlet NSView *unrecognizedFileAccessoryView;
+    NSMutableDictionary *disketteSizes;
+    NSMutableArray *disketteSizeDescriptions;
+    
     IBOutlet NSView *romSelectionAccessoryView;
+    IBOutlet NSView *diskSelectionAccessoryView;
+    IBOutlet NSView *cassetteSelectionAccessoryView;
+    IBOutlet NSView *disketteSizeAccessoryView;
     
-    IBOutlet NSButton *openAnyFileCheckbox;
-    IBOutlet NSButton *openAnyRomFileCheckbox;
     IBOutlet NSPopUpButton *romTypeDropdown;
+    IBOutlet NSButton *openAnyRomFileCheckbox;
+    IBOutlet NSButton *openAnyDiskFileCheckbox;
+    IBOutlet NSButton *mountFolderCopyCheckbox;
+    IBOutlet NSTextField *mountFolderCopyInfo;
+    IBOutlet NSButton *openAnyCassetteFileCheckbox;
+    IBOutlet NSPopUpButton *disketteSizeDropdown;
     
     IBOutlet NSBox *statusBar;
     IBOutlet NSTextField *fpsCounter;
@@ -195,6 +204,9 @@ NSString * const CMKeyboardLayoutPrefKey;
 - (IBAction)ejectDiskSlot1:(id)sender;
 - (IBAction)ejectDiskSlot2:(id)sender;
 
+- (IBAction)insertBlankDiskAsSlot1:(id)sender;
+- (IBAction)insertBlankDiskAsSlot2:(id)sender;
+
 - (IBAction)toggleDiskAutoReset:(id)sender;
 
 - (IBAction)insertCassette:(id)sender;
@@ -211,6 +223,7 @@ NSString * const CMKeyboardLayoutPrefKey;
 - (IBAction)overwriteState:(id)sender;
 
 - (IBAction)saveScreenshot:(id)sender;
+- (IBAction)saveScreenshotAs:(id)sender;
 
 - (IBAction)recordAudio:(id)sender;
 

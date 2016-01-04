@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -244,7 +244,7 @@
             deltaY = theEvent.deltaY;
             
             if (CMGetBoolPref(@"unlockMouseCursorOnShake") &&
-                (abs(deltaX) > escapeThresholdX || abs(deltaY) > escapeThresholdY))
+                (fabs(deltaX) > escapeThresholdX || fabs(deltaY) > escapeThresholdY))
             {
                 [self unlockCursor];
             }

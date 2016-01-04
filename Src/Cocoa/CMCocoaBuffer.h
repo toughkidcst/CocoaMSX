@@ -2,7 +2,7 @@
  **
  ** CocoaMSX: MSX Emulator for Mac OS X
  ** http://www.cocoamsx.com
- ** Copyright (C) 2012-2014 Akop Karapetyan
+ ** Copyright (C) 2012-2015 Akop Karapetyan
  **
  ** This program is free software; you can redistribute it and/or modify
  ** it under the terms of the GNU General Public License as published by
@@ -27,25 +27,22 @@
 @interface CMCocoaBuffer : NSObject
 {
     @public
-    
-    char *pixels;
+    UInt8 *pixels;
     int bytesPerPixel;
-    int width;
-    int height;
     int actualWidth;
     int actualHeight;
-    int textureWidth;
-    int textureHeight;
-    GLfloat textureCoordX;
-    GLfloat textureCoordY;
-    int depth;
-    int zoom;
+    NSSize textureSize;
+    NSPoint textureCoord;
     int pitch;
+    
+    @private
+    UInt8 *scaledPixels;
 }
 
-- (id)initWithWidth:(int)screenWidth
-             height:(int)screenHeight
-              depth:(int)imageDepth
-               zoom:(int)zoomFactor;
+- (id) initWithWidth:(int) screenWidth
+              height:(int) screenHeight
+                zoom:(int) zoomFactor
+        backingScale:(GLfloat) backingScaleFactor;
+- (void *) applyScale;
 
 @end
